@@ -1,4 +1,4 @@
-{% load i18n metadataparsertags pagination_tags %}
+{% load i18n metadataparsertags %}
 
 {% if show_filters %}
 {% entity_filters entities %}
@@ -18,33 +18,83 @@ of IDP and SP can be bigger than the number of entities
 </p>
 {% endif %}
 
-{% autopaginate entities %}
-{% paginate %}
+{% if pagination %}
+<div class="pagination">
+    <ul>
+        <li class="{% if pagination.cur_page_number == 1 %}active{% endif %}"><a href="{% add_get page=1 %}">&laquo;</a></li>
+
+        {% for page in pagination.page_range %}
+            {% if forloop.first and page != 1 %}
+                <li><a href="#">...</a></li>
+            {% endif %}
+
+            <li class="{% if pagination.cur_page_number == page %}active{% endif %}"><a href="{% add_get page=page %}">{{ page }}</a></li>
+
+            {% if forloop.last and page != pagination.num_pages %}
+                <li><a href="#">...</a></li>
+            {% endif %}
+        {% endfor %}
+
+        <li class="{% if pagination.cur_page_number == pagination.num_pages %}active{% endif %}"><a href="{% add_get page=pagination.num_pages %}">&raquo;</a></li>
+    </ul>
+</div>
+{% endif %}
+
 <table class="table table-striped">
   <thead>
     <tr>
       <th>EntityID</th>
       <th>Type</th>
+      <th>Display Name</th>
       <th>Federations</th>
+      <th>Number of Federations</th>
     </tr>
   </thead>
   <tbody>
   {% for entity in entities %}
   <tr>
     <td>
-      <a title="{{ entity|default:entity.entityid }}"
-         href="{{ entity.get_absolute_url }}">{{ entity|default:entity.entityid|wrap:50 }}</a>
+      <a title="{{ entity.entityid }}"
+         href="{{ entity.absolute_url }}{% if curfed %}?federation={{ curfed.slug }}{% endif %}">{{ entity.entityid|wrap:50 }}</a>
     </td>
     <td>
       {{ entity.types|display_etype }}
     </td>
     <td>
-    {% for federation in entity.federations.all %}
-    <a href="{{ federation.get_absolute_url }}">{{ federation }}</a> {% if not forloop.last %}|{% endif %}
+      {% l10n_property entity.name lang %}
+    </td>
+    <td>
+    {% for federation in entity.federations %}
+    <a href="{{ federation.1 }}">{{ federation.0 }}</a> {% if not forloop.last %}|{% endif %}
     {% endfor %}
+    </td>
+    <td>
+    {{ entity.federations|length }}
     </td>
   </tr>
   {% endfor %}
   </tbody>
 </table>
-{% paginate %}
+
+{% if pagination %}
+<div class="pagination">
+    <ul>
+        <li class="{% if pagination.cur_page_number == 1 %}active{% endif %}"><a href="{% add_get page=1 %}">&laquo;</a></li>
+
+        {% for page in pagination.page_range %}
+            {% if forloop.first and page != 1 %}
+                <li><a href="#">...</a></li>
+            {% endif %}
+
+            <li class="{% if pagination.cur_page_number == page %}active{% endif %}"><a href="{% add_get page=page %}">{{ page }}</a></li>
+
+            {% if forloop.last and page != pagination.num_pages %}
+                <li><a href="#">...</a></li>
+            {% endif %}
+        {% endfor %}
+
+        <li class="{% if pagination.cur_page_number == pagination.num_pages %}active{% endif %}"><a href="{% add_get page=pagination.num_pages %}">&raquo;</a></li>
+    </ul>
+</div>
+{% endif %}
+

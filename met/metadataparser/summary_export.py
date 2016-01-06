@@ -1,13 +1,25 @@
+#################################################################
+# MET v2 Metadate Explorer Tool
+#
+# This Software is Open Source. See License: https://github.com/TERENA/met/blob/master/LICENSE.md
+# Copyright (c) 2012, TERENA All rights reserved.
+#
+# This Software is based on MET v1 developed for TERENA by Yaco Sistemas, http://www.yaco.es/
+# MET v2 was developed for TERENA by Tamim Ziai, DAASI International GmbH, http://www.daasi.de
+# Current version of MET has been revised for performance improvements by Andrea Biancini,
+# Consortium GARR, http://www.garr.it
+#########################################################################################
+
 import csv
 from xml.dom.minidom import Document
 
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.template.defaultfilters import slugify
-from django.utils import simplejson as json
+import simplejson as json
 
 
 def export_summary_csv(qs, relation, filename, counters):
-    response = HttpResponse(mimetype='text/csv')
+    response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = ('attachment; filename=%s.csv'
                                        % slugify(filename))
     writer = csv.writer(response)
@@ -17,7 +29,7 @@ def export_summary_csv(qs, relation, filename, counters):
     # Write data to CSV file
     for obj in qs:
         row = [unicode(obj)]
-        for (counter_label, counter_filter) in counters:
+        for counter_label, counter_filter in counters:
             row.append(getattr(obj, relation).filter(**counter_filter).count())
         writer.writerow(row)
     # Return CSV file to browser as download
@@ -28,12 +40,12 @@ def export_summary_json(qs, relation, filename, counters=None):
     objs = {}
     for obj in qs:
         item = {}
-        for (counter_label, counter_filter) in counters:
+        for counter_label, counter_filter in counters:
             item[counter_label] = getattr(obj, relation).filter(**counter_filter).count()
         objs[unicode(obj)] = item
     # Return JS file to browser as download
     serialized = json.dumps(objs)
-    response = HttpResponse(serialized, mimetype='application/json')
+    response = HttpResponse(serialized, content_type='application/json')
     response['Content-Disposition'] = ('attachment; filename=%s.json'
                                        % slugify(filename))
     return response
@@ -49,7 +61,7 @@ def export_summary_xml(qs, relation, filename, counters):
     for obj in qs:
         item = xml.createElement(model._meta.object_name)
         item.setAttribute("id", unicode(obj))
-        for (counter_label, counter_filter) in counters:
+        for counter_label, counter_filter in counters:
             val = getattr(obj, relation).filter(**counter_filter).count()
             element = xml.createElement(counter_label)
             xmlval = xml.createTextNode(unicode(val))
@@ -59,7 +71,7 @@ def export_summary_xml(qs, relation, filename, counters):
         root.appendChild(item)
 
     # Return XML file to browser as download
-    response = HttpResponse(xml.toxml(), mimetype='application/xml')
+    response = HttpResponse(xml.toxml(), content_type='application/xml')
     response['Content-Disposition'] = ('attachment; filename=%s.xml'
                                        % slugify(filename))
     return response

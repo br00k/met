@@ -1,0 +1,15 @@
+{% extends "metadataparser/base_metadataparser.html" %}
+{% load i18n metadataparsertags %}
+
+{% block appendheader %}
+{% if form.instance.id %}
+<h2>{% trans "Send Proposal for " %} {{ form.instance }}</h2>
+{% else %}
+<h2>{% trans "Send Proposal" %}</h2>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+  {% bootstrap_form form cancel_link=form.instance.get_absolute_url delete_link=delete_link %}
+{% endblock %}
+

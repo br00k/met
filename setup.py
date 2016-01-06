@@ -1,30 +1,14 @@
-# Copyright 2012 Terena. All rights reserved.
-
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-
-#    2. Redistributions in binary form must reproduce the above copyright notice,
-#       this list of conditions and the following disclaimer in the documentation
-#        and/or other materials provided with the distribution.
-
-# THIS SOFTWARE IS PROVIDED BY TERENA ``AS IS'' AND ANY EXPRESS OR IMPLIED
-# WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-# MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
-# EVENT SHALL TERENA OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-# PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-# OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
-# ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-# The views and conclusions contained in the software and documentation are those
-# of the authors and should not be interpreted as representing official policies,
-# either expressed or implied, of Terena.
+#################################################################
+# MET v2 Metadate Explorer Tool
+#
+# This Software is Open Source. See License: https://github.com/TERENA/met/blob/master/LICENSE.md
+# Copyright (c) 2012, TERENA All rights reserved.
+#
+# This Software is based on MET v1 developed for TERENA by Yaco Sistemas, http://www.yaco.es/
+# MET v2 was developed for TERENA by Tamim Ziai, DAASI International GmbH, http://www.daasi.de
+# Current version of MET has been revised for performance improvements by Andrea Biancini,
+# Consortium GARR, http://www.garr.it
+#########################################################################################
 
 from setuptools import setup, find_packages
 import sys, os
@@ -46,20 +30,25 @@ setup(name='met',
       keywords='',
       author='Terena',
       author_email='',
-      url='https://github.com/Yaco-Sistemas/met',
+      url='https://github.com/TERENA/met',
       license='BSD License',
       packages=find_packages(exclude=['ez_setup', 'examples', 'tests']),
       include_package_data=True,
       zip_safe=False,
       install_requires=[
-          'Django>=1.4',
-          'psycopg2==2.4.5',
-          'lxml==2.3.5',
+          'Django>=1.7',
+          'MySQL-python',
+          'lxml>=2.3.5',
           'PIL',
-          'requests==0.14.1',
-          'djangosaml2==0.9.0',
+          'requests>=1.0.0',
+          'djangosaml2>=0.9.0',
           'django-pagination==1.0.7',
-          'python-memcached',
+          'django-chartit',
+	  'python-memcached==1.48',
+          'simplejson',
+          'django-mysqlpool',
+          'django-silk',
+          'pyff'
       ],
       entry_points="""
       # -*- Entry points: -*-

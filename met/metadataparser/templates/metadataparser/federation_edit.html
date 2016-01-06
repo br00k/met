@@ -10,11 +10,11 @@
 {% endblock %}
 
 {% block content %}
-{% if form.instance.id %}
-  {% url federation_delete form.instance.slug as delete_link %}
+{% if form.instance.id and delete_federation %}
+  {% url 'federation_delete' form.instance.slug as delete_link %}
   {% bootstrap_form form cancel_link=form.instance.get_absolute_url delete_link=delete_link %}
 {% else %}
-  {% url index as cancel_link %}
+  {% url 'index' as cancel_link %}
   {% bootstrap_form form cancel_link delete_link="" %}
 {% endif %}
 
@@ -28,12 +28,12 @@
     <h3 id="deleteModalLabel">{% trans "Confirm Delete" %}</h3>
   </div>
   <div class="modal-body">
-    <p>{% trans "This actions is unreversible, ¿Are you sure?" %}</p>
+    <p>{% trans "This actions is unreversible, Are you sure?" %}</p>
   </div>
   <div class="modal-footer">
     <button class="btn" data-dismiss="modal" aria-hidden="true">{% trans "No" %}</button>
     <a class="btn btn-danger"
-      href="{% url federation_delete form.instance.slug %}">{% trans "Delete" %}</a>
+      href="{% url 'federation_delete' form.instance.slug %}">{% trans "Delete" %}</a>
   </div>
 </div>
 {% endif %}

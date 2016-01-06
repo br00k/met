@@ -7,16 +7,43 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta name="description" content="{% trans "Metadata Explorer Tool" %}">
     <meta name="author" content="Terena">
+    <script src="{{ STATIC_URL }}js/jquery-1.10.2.min.js"></script>
+    <script src="{{ STATIC_URL }}js/bootstrap.js"></script>
+    <script src="{{ STATIC_URL }}js/main.js"></script>
+    <script src="{{ STATIC_URL }}js/jquery.tablesorter.min.js"></script>
+    <script src="{{ STATIC_URL }}js/sort_startup.js"></script>
+    <script src="{{ STATIC_URL }}js/highcharts.js"></script>
+    <script src="{{ STATIC_URL }}js/discojuice-3.0.en.min.js"></script>
+    <script src="{{ STATIC_URL }}js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript">
+      var djc = DiscoJuice.Hosted.getConfig(
+        {
+          "target": "a.signin",
+          "title": "{{ portal_settings.SAML_DESCRIPTION }}",
+          "spentityid": "{{ portal_settings.SAML_ENTITYID }}",
+          "responseurl": "static/response.html",
+          "redirectURL": "{{ portal_settings.LOGIN_URL }}?next={{ request.get_full_path|iriencode }}&idp=",
+          "feeds": {{ portal_settings.DJANGO_FEDERATIONS|safe }}
+        }
+      );
 
-    <!-- Botstrap -->
-     <link href="{{ STATIC_URL }}css/bootstrap.css" rel="stylesheet">
-     <link href="{{ STATIC_URL }}css/styles.css" rel="stylesheet">
+      djc.inlinemetadata = {{ portal_settings.DJANGO_ADDITIONAL_IDPS|safe }};
+
+      $(document).ready(function() {
+        $("a.signin").DiscoJuice(djc);      
+      });
+    </script>
+    <!-- Bootstrap -->
+    <link href="{{ STATIC_URL }}css/bootstrap.css" rel="stylesheet">
+    <link href="{{ STATIC_URL }}css/styles.css" rel="stylesheet">
+    <link href="{{ STATIC_URL }}css/discojuice.css" rel="stylesheet" />
+    <link href="{{ STATIC_URL }}css/jquery.dataTables.css" rel="stylesheet" />
   </head>
   <body>
     <div class="container">
       <div class="navbar row">
         <div class="navbar-inner">
-          <a class="brand" href="{% url index %}">{% trans "Metadata Explorer Tool" %}</a>
+          <a class="brand" href="{% url 'index' %}">{% trans "Metadata Explorer Tool" %}</a>
           <ul class="nav pull-right">
           {% if request.user.is_authenticated %}
             <li class="divider-vertical"></li>
@@ -25,11 +52,11 @@
             <li><p class="navbar-text"><a href="{{ portal_settings.LOGOUT_URL }}?next={{ request.get_full_path|iriencode }}">{% trans "Logout" %}</a></p></li>
           {% else %}
             <li class="divider-vertical"></li>
-            <li><a href="{{ portal_settings.LOGIN_URL }}?next={{ request.get_full_path|iriencode }}">{% trans "login" %}</a></li>
+            <li><a href="#" class="signin">{% trans "Login" %}</a></li>
           {% endif %}
           </ul>
           <form class="navbar-search pull-right"
-            action="{% url search_service %}" method="get">
+            action="{% url 'search_service' %}" method="get">
             {% with nav_searchform.visible_fields|first as field %}
               <input rel="tooltip" title="{{ field.help_text }}"
                {% if field.value %} value="{{ field.value }}" {% endif %}
@@ -49,8 +76,8 @@
         <div class="alert alert-{{ message.tags|default:"info" }}">
           <button type="button" class="close" data-dismiss="alert">×</button>
           {{ message|safe }}
-       </div>
-       {% endfor %}
+        </div>
+        {% endfor %}
       </div>
       {% endif %}
       <div class="row">
@@ -60,14 +87,31 @@
     </div>
 
     <footer class="container well">
-      <p><a href="http://www.terena.org/">&copy; Copyright 2012 Terena</a><p>
-      <p><a href="{% url about %}">About Metadata Explorer Tool</a><p>
-      <p><a href="http://github.com/Yaco-Sistemas/met">Get the code at Github</a><p>
+      <p><a href="http://www.terena.org/">&copy; Copyright 2012-2013 Terena</a><p>
+      <p><a href="{% url 'about' %}">About Metadata Explorer Tool</a><p>
+      <p><a href="https://github.com/TERENA/met">Get the code at Github</a><p>
     </footer>
-    <script src="{{ STATIC_URL }}js/jquery-1.8.1.min.js"></script>
-    <script src="{{ STATIC_URL }}js/bootstrap.js"></script>
-    <script src="{{ STATIC_URL }}js/main.js"></script>
     {% block extrajs %}
     {% endblock %}
+
+<!-- Start Open Web Analytics Tracker -->
+<script type="text/javascript">
+//<![CDATA[
+var owa_baseUrl = '{{ settings.OWA_BASEURL }}';
+var owa_cmds = owa_cmds || [];
+owa_cmds.push(['setSiteId', '{{ settings.OWA_SITEID }}']);
+owa_cmds.push(['trackPageView']);
+owa_cmds.push(['trackClicks']);
+owa_cmds.push(['trackDomStream']);
+
+(function() {
+	var _owa = document.createElement('script'); _owa.type = 'text/javascript'; _owa.async = true;
+	owa_baseUrl = ('https:' == document.location.protocol ? window.owa_baseSecUrl || owa_baseUrl.replace(/http:/, 'https:') : owa_baseUrl );
+	_owa.src = owa_baseUrl + 'modules/base/js/owa.tracker-combined-min.js';
+	var _owa_s = document.getElementsByTagName('script')[0]; _owa_s.parentNode.insertBefore(_owa, _owa_s);
+}());
+//]]>
+</script>
+<!-- End Open Web Analytics Code -->
   </body>
 </html>

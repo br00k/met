@@ -1,5 +1,16 @@
-from lxml import etree
+#################################################################
+# MET v2 Metadate Explorer Tool
+#
+# This Software is Open Source. See License: https://github.com/TERENA/met/blob/master/LICENSE.md
+# Copyright (c) 2012, TERENA All rights reserved.
+#
+# This Software is based on MET v1 developed for TERENA by Yaco Sistemas, http://www.yaco.es/
+# MET v2 was developed for TERENA by Tamim Ziai, DAASI International GmbH, http://www.daasi.de
+# Current version of MET has been revised for performance improvements by Andrea Biancini,
+# Consortium GARR, http://www.garr.it
+#########################################################################################
 
+from lxml import etree
 
 NAMESPACES = {
     'xml': 'http://www.w3.org/XML/1998/namespace',
@@ -10,6 +21,8 @@ NAMESPACES = {
     'ds': 'http://www.w3.org/2000/09/xmldsig#',
     'saml': 'urn:oasis:names:tc:SAML:2.0:assertion',
     'samlp': 'urn:oasis:names:tc:SAML:2.0:protocol',
+    'mdrpi': 'urn:oasis:names:tc:SAML:metadata:rpi',
+    'shibmd': 'urn:mace:shibboleth:metadata:1.0',
     }
 
 SAML_METADATA_NAMESPACE = NAMESPACES['md']
@@ -17,11 +30,6 @@ SAML_METADATA_NAMESPACE = NAMESPACES['md']
 XML_NAMESPACE = NAMESPACES['xml']
 XMLDSIG_NAMESPACE = NAMESPACES['ds']
 MDUI_NAMESPACE = NAMESPACES['mdui']
-
-#DESCRIPTOR_TYPES = ('RoleDescriptor', 'IDPSSODescriptor',
-#                    'SPSSODescriptor', 'AuthnAuthorityDescriptor',
-#                    'AttributeAuthorityDescriptor', 'PDPDescriptor',
-#                    'AffiliationDescriptor',)
 
 DESCRIPTOR_TYPES = ('IDPSSODescriptor', 'SPSSODescriptor',)
 DESCRIPTOR_TYPES_DISPLAY = {}
@@ -51,179 +59,306 @@ ENTITY_ROOT_TAG = addns('EntityDescriptor')
 
 
 class MetadataParser(object):
+    def __init__(self, filename=None):
+        if filename is None:
+            raise ValueError('filename is required')
 
-    def __init__(self, filename=None, data=None):
-        if filename:
-            try:
-                etree_parser = etree.parse(filename)
-            except etree.XMLSyntaxError:
-                raise ValueError('invalid metadata XML')
-        elif data:
-            try:
-                etree_parser = etree.XML(data)
-            except etree.XMLSyntaxError:
-                raise ValueError('invalid metadata XML')
-        else:
-            raise ValueError('filename or data are required')
-
-        self.etree = etree_parser.getroot()
-        self.file_id = self.etree.get('ID', None)
-        self.is_federation = (self.etree.tag == FEDERATION_ROOT_TAG)
+        self.filename = filename
+        context = etree.iterparse(self.filename, events=('start',))
+        context = iter(context)
+        event, self.rootelem = context.next()
+        self.file_id = self.rootelem.get('ID', None)
+        self.is_federation = self.rootelem.tag == FEDERATION_ROOT_TAG
         self.is_entity = not self.is_federation
 
-    def get_federation(self, attrs=None):
-        assert self.is_federation
-        federation_attrs = attrs or ('ID', 'Name',)
-        federation = {}
-
-        for attr in federation_attrs:
-            federation[attr] = self.etree.get(attr, None)
-
-        return federation
-
-    def get_entity(self, entityid):
-        entity_xpath = self.etree.xpath("//md:EntityDescriptor[@entityID='%s']"
-                                         % entityid, namespaces=NAMESPACES)
-        if len(entity_xpath):
-            entity_etree = entity_xpath[0]
-        else:
-            raise ValueError("Entity not found: %s" % entityid)
-        entity_attrs = (('entityid', 'entityID'), ('file_id', 'ID'))
+    @staticmethod
+    def _get_entity_details(element):
         entity = {}
-        for (dict_attr, etree_attr) in entity_attrs:
-            entity[dict_attr] = entity_etree.get(etree_attr, None)
 
-        entity_types = self.entity_types(entity['entityid'])
-        if entity_types:
-            entity['entity_types'] = entity_types
-        displayName = self.entity_displayname(entity['entityid'])
-        if displayName:
-            entity['displayname'] = displayName
-        description = self.entity_description(entity['entityid'])
-        if description:
-            entity['description'] = description
-        protocols = self.entity_protocols(entity['entityid'])
-        if protocols:
-            entity['protocols'] = protocols
-        Organization = self.entity_organization(entity['entityid'])
-        if Organization:
-            entity['organization'] = Organization
-        logos = self.entity_logos(entity['entityid'])
-        if logos:
-            entity['logos'] = logos
+        entity['xml'] = etree.tostring(element, pretty_print=True)
+
+        entity['description'] = MetadataParser.entity_description(element)
+        entity['infoUrl'] = MetadataParser.entity_information_url(element)
+        entity['privacyUrl'] = MetadataParser.entity_privacy_url(element)
+        entity['organization'] = MetadataParser.entity_organization(element)
+        entity['logos'] = MetadataParser.entity_logos(element)
+        entity['scopes'] = MetadataParser.entity_attribute_scope(element)
+        entity['attr_requested'] = MetadataParser.entity_requested_attributes(element)
+        entity['contacts'] = MetadataParser.entity_contacts(element)
+        entity['registration_policy'] = MetadataParser.registration_policy(element)
 
         return entity
 
+    @staticmethod
+    def _entity_lang_seen(entity):
+        languages = set()
+        for key in ['description', 'infoUrl', 'privacyUrl', 'organization', 'displayName']:
+            if key in entity.keys() and entity[key]:
+                languages |= set(entity[key].keys())
+
+        return languages
+
+    @staticmethod
+    def _get_entity_by_id(context, entityid, details):
+        for event, element in context:
+            if element.attrib['entityID'] == entityid:
+                entity = {}
+
+                entity['entityid'] = entityid
+                entity['file_id'] = element.get('ID', None)
+                entity['displayName'] = MetadataParser.entity_displayname(element)
+                reg_info = MetadataParser.registration_information(element)
+                if reg_info and 'authority' in reg_info:
+                   entity['registration_authority'] = reg_info['authority']
+                if reg_info and 'instant' in reg_info:
+                   entity['registration_instant'] = reg_info['instant']
+                entity['entity_types'] = MetadataParser.entity_types(element)
+                entity['protocols'] = MetadataParser.entity_protocols(element, entity['entity_types'])
+
+                if details:
+                    entity_details = MetadataParser._get_entity_details(element)
+                    entity.update(entity_details)
+                    entity = dict((k, v) for k, v in entity.iteritems() if v)
+
+                entity['languages'] = MetadataParser._entity_lang_seen(entity)
+                yield entity
+
+            element.clear()
+            while element.getprevious() is not None:
+                del element.getparent()[0]
+        del context
+
+    def get_federation(self, attrs=None):
+        assert self.is_federation
+
+        federation = {}
+        federation['ID'] = self.rootelem.get('ID', None)
+        federation['Name'] = self.rootelem.get('Name', None)
+
+        return federation
+
+    def get_entity(self, entityid, details=True):
+        context = etree.iterparse(self.filename, tag=addns('EntityDescriptor'), events=('end',))
+        element = None
+        for element in MetadataParser._get_entity_by_id(context, entityid, details):
+            return element
+
+        raise ValueError("Entity not found: %s" % entityid)
+
     def entity_exist(self, entityid):
-        entity_xpath = self.etree.xpath("//md:EntityDescriptor[@entityID='%s']"
+        entity_xpath = self.rootelem.xpath("//md:EntityDescriptor[@entityID='%s']"
                                          % entityid, namespaces=NAMESPACES)
-        return (len(entity_xpath) > 0)
+        return len(entity_xpath) > 0
+
+    @staticmethod
+    def _get_entities_id(context):
+        for event, element in context:
+            yield element.attrib['entityID']
+            element.clear()
+            while element.getprevious() is not None:
+                del element.getparent()[0]
+        del context
 
     def get_entities(self):
         # Return entityid list
-        return self.etree.xpath("//@entityID")
+        context = etree.iterparse(self.filename, tag=addns('EntityDescriptor'), events=('end',))
+        return list(self._get_entities_id(context))
 
-    def entity_types(self, entityid):
-        entity_base = "//md:EntityDescriptor[@entityID='%s']" % entityid
-
-        expression = ("|".join(["%s/%s" % (entity_base, desc)
-                                         for desc in DESCRIPTOR_TYPES_UTIL]))
-
-        elements = self.etree.xpath(expression, namespaces=NAMESPACES)
+    @staticmethod
+    def entity_types(entity):
+        expression = "|".join([desc for desc in DESCRIPTOR_TYPES_UTIL])
+        elements = entity.xpath(expression, namespaces=NAMESPACES)
         types = [element.tag.split("}")[1] for element in elements]
         return types
 
-    def entities_by_type(self, entity_type):
-        return self.etree.xpath("//md:EntityDescriptor[md:%s]/@entityID"
-                                % entity_type, namespaces=NAMESPACES)
+    @staticmethod
+    def entity_protocols(entity, entity_types):
+        if isinstance(entity_types, list) and len(entity_types) > 0:
+            e_type = entity_types[0]
+        else:
+            e_type = 'IDPSSODescriptor'
 
-    def count_entities_by_type(self, entity_type):
-        return int(self.etree.xpath("count(//md:EntityDescriptor[md:%s])" %
-                               entity_type, namespaces=NAMESPACES))
-
-    def count_entities(self):
-        return int(self.etree.xpath("count(//md:EntityDescriptor)",
-                                namespaces=NAMESPACES))
-
-    def entity_protocols(self, entityid):
-        raw_protocols = self.etree.xpath("//md:EntityDescriptor[@entityID='%s']"
-                                         "/md:IDPSSODescriptor"
-                                         "/@protocolSupportEnumeration" % entityid,
-                                 namespaces=NAMESPACES)
+        raw_protocols = entity.xpath(".//md:%s"
+                                     "/@protocolSupportEnumeration" % e_type,
+                                     namespaces=NAMESPACES)
         if raw_protocols:
             protocols = raw_protocols[0]
             return protocols.split(' ')
+
         return []
 
-    def entity_displayname(self, entityid):
+    @staticmethod
+    def entity_displayname(entity):
         languages = {}
 
-        names = self.etree.xpath("//md:EntityDescriptor[@entityID='%s']"
-                                 " //mdui:UIInfo"
-                                 "//mdui:DisplayName" % entityid,
-                                 namespaces=NAMESPACES)
+        names = entity.xpath(".//mdui:UIInfo"
+                             "//mdui:DisplayName",
+                             namespaces=NAMESPACES)
 
         for dn_node in names:
             lang = getlang(dn_node)
-            if lang is None:
-                continue  # the lang attribute is required
-
             languages[lang] = dn_node.text
 
+        if None in languages.keys():
+            del languages[None]
         return languages
 
-    def entity_description(self, entityid):
+    @staticmethod
+    def entity_description(entity):
         languages = {}
 
-        names = self.etree.xpath("//md:EntityDescriptor[@entityID='%s']"
-                                 " //mdui:UIInfo"
-                                 "//mdui:Description" % entityid,
-                                 namespaces=NAMESPACES)
+        names = entity.xpath(".//mdui:UIInfo"
+                             "//mdui:Description",
+                             namespaces=NAMESPACES)
 
         for dn_node in names:
             lang = getlang(dn_node)
-            if lang is None:
-                continue  # the lang attribute is required
-
             languages[lang] = dn_node.text
 
+        if None in languages.keys():
+            del languages[None]
         return languages
 
-    def entity_organization(self, entityid):
-        orgs = self.etree.xpath("//md:EntityDescriptor[@entityID='%s']"
-                                "/md:Organization" % entityid,
-                                namespaces=NAMESPACES)
+    @staticmethod
+    def entity_information_url(entity):
+        languages = {}
+
+        names = entity.xpath(".//mdui:UIInfo"
+                             "//mdui:InformationURL",
+                             namespaces=NAMESPACES)
+
+        for dn_node in names:
+            lang = getlang(dn_node)
+            languages[lang] = dn_node.text
+
+        if None in languages.keys():
+            del languages[None]
+        return languages
+
+    @staticmethod
+    def entity_privacy_url(entity):
+        languages = {}
+
+        names = entity.xpath(".//mdui:UIInfo"
+                             "//mdui:PrivacyStatementURL",
+                             namespaces=NAMESPACES)
+
+        for dn_node in names:
+            lang = getlang(dn_node)
+            languages[lang] = dn_node.text
+
+        if None in languages.keys():
+            del languages[None]
+        return languages
+ 
+    @staticmethod
+    def entity_organization(entity):
+        orgs = entity.xpath(".//md:Organization",
+                            namespaces=NAMESPACES)
         languages = {}
         for org_node in orgs:
-            for attr in ('name', 'displayName', 'URL'):
+            for attr in 'name', 'displayName', 'URL':
                 node_name = 'Organization' + attr[0].upper() + attr[1:]
                 for node in org_node.findall(addns(node_name)):
                     lang = getlang(node)
-                    if lang is None:
-                        continue  # the lang attribute is required
-
                     lang_dict = languages.setdefault(lang, {})
                     lang_dict[attr] = node.text
 
-        result = []
-        for lang, data in languages.items():
-            data['lang'] = lang
-            result.append(data)
-        return result
+        if None in languages.keys():
+            del languages[None]
+        return languages
 
-    def entity_logos(self, entityid):
-        xmllogos = self.etree.xpath("//md:EntityDescriptor[@entityID='%s']"
-                                 " //mdui:UIInfo"
-                                 "/mdui:Logo" % entityid,
-                                 namespaces=NAMESPACES)
+    @staticmethod
+    def entity_logos(entity):
+        xmllogos = entity.xpath(".//mdui:UIInfo"
+                                "/mdui:Logo",
+                                namespaces=NAMESPACES)
         logos = []
         for logo_node in xmllogos:
             if logo_node.text is None:
                 continue  # the file attribute is required
             logo = {}
-            logo['width'] = logo_node.attrib.get('width', '')
-            logo['height'] = logo_node.attrib.get('height', '')
+            logo['width'] = int(logo_node.attrib.get('width', '0'))
+            logo['height'] = int(logo_node.attrib.get('height', '0'))
             logo['file'] = logo_node.text
-            logo['external'] = True
+            logo['lang'] = getlang(logo_node)
             logos.append(logo)
         return logos
+
+    @staticmethod
+    def registration_information(entity):
+        reg_info = entity.xpath(".//md:Extensions"
+                                "/mdrpi:RegistrationInfo",
+                                namespaces=NAMESPACES)
+        info = {}
+        if reg_info:
+            info['authority'] = reg_info[0].attrib.get('registrationAuthority')
+            info['instant'] = reg_info[0].attrib.get('registrationInstant')
+        return info
+
+    @staticmethod
+    def registration_policy(entity):
+        reg_policy = entity.xpath(".//md:Extensions"
+                                "/mdrpi:RegistrationInfo"
+                                "/mdrpi:RegistrationPolicy",
+                                namespaces=NAMESPACES)
+        languages = {}
+        for dn_node in reg_policy:
+            lang = getlang(dn_node)
+            if lang is None:
+                continue  # the lang attribute is required
+
+            languages[lang] = dn_node.text
+
+        return languages
+
+    @staticmethod
+    def entity_attribute_scope(entity):
+        scope_node = entity.xpath(".//md:Extensions"
+                                  "/shibmd:Scope",
+                                  namespaces=NAMESPACES)
+
+        scope = []
+        for cur_scope in scope_node:
+            if not cur_scope.text in scope:
+                scope.append(cur_scope.text)
+        return scope
+
+    @staticmethod
+    def entity_requested_attributes(entity):
+        xmllogos = entity.xpath(".//md:AttributeConsumingService"
+                                "/md:RequestedAttribute",
+                                namespaces=NAMESPACES)
+        attrs = {}
+        attrs['required'] = []
+        attrs['optional'] = []
+        for attr_node in xmllogos:
+            required = attr_node.attrib.get('isRequired', 'false')
+            index = 'required' if required == 'true' else 'optional'
+            attrs[index].append([attr_node.attrib.get('Name', None), attr_node.attrib.get('FriendlyName', None)])
+        return attrs
+
+    @staticmethod
+    def entity_contacts(entity):
+        contacts = entity.xpath(".//md:ContactPerson",
+                                namespaces=NAMESPACES)
+        cont = []
+        for cont_node in contacts:
+            c_type = cont_node.attrib.get('contactType', '')
+            name = cont_node.xpath(".//md:GivenName", namespaces=NAMESPACES)
+            if name:
+                name = name[0].text
+            else:
+                name = None
+            surname = cont_node.xpath(".//md:SurName", namespaces=NAMESPACES)
+            if surname:
+                surname = surname[0].text
+            else:
+                surname = None
+            email = cont_node.xpath(".//md:EmailAddress", namespaces=NAMESPACES)
+            if email:
+                email = email[0].text
+            else:
+                email = None
+            cont.append({ 'type': c_type, 'name': name, 'surname': surname, 'email': email })
+        return cont

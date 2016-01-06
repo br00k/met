@@ -1,27 +1,126 @@
 {% extends "metadataparser/base_metadataparser.html" %}
 {% load i18n metadataparsertags %}
 
-{% block appendheader %}
-{% canedit federation %}
-<div class="btn-group pull-right">
- <a class="btn" href="{% url federation_edit federation.slug %}">{% trans "edit" %}</a>
- <a class="btn" href="{% url entity_add federation.slug %}">{% trans "add entity" %}</a>
+{% block extrajs %}
+<script language="javascript">
+    function update_entities() {
+        $.ajax({
+            type: "GET",
+            url: "{% url 'federation_update_entities' federation.slug %}"
+        });
+
+        window.setTimeout(updater, 1000);
+    }
+
+    function updater() {
+        $.ajax ({
+             type: "GET",
+             url: "{% url 'entityupdate_progress' federation.slug %}",
+             dataType: "json",
+             cache: false,
+             success: function(jsondata, success) {
+                  if (jsondata) {
+                      if (jsondata.done) {
+                          $('#saveModal').modal('hide');
+                          window.location = window.location.pathname;
+                      }
+                      else {
+                          var progress = Math.round(100 * (jsondata.num / jsondata.tot));
+                          $('.bar').css('width', progress + '%');
+                          $('.sr-only').text(jsondata.num + '/' + jsondata.tot);
+                          window.setTimeout(updater, 500);
+                      }
+                  }
+             }
+        });
+    }
+
+    {% if update_entities == 'true' %}
+    $(document).ready(function() {
+        $('#saveModal').modal('show');
+        update_entities();
+    });
+    {% endif %}
+</script>
+
+<div id="saveModal" class="modal hide fade in" tabindex="-1" role="dialog" aria-labelledby="saveModalLabel" aria-hidden="true">
+  <div class="modal-header">
+    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+    <h3 id="saveModalLabel">{% trans "Saving Federation Data" %}</h3>
+  </div>
+  <div class="modal-body">
+    <p>{% trans "Please wait while federation data is being saved to database." %}</p>
+    <div class="progress">
+      <div class="bar progress-striped active" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;a">
+        <span class="sr-only">0/0</span>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <p>{% trans "Processing federation data..." %}</p>
+  </div>
 </div>
-{% endcanedit %}
-<h2>
-  {{ federation }}
-</h2>
 {% endblock %}
 
+{% block appendheader %}
+
+<div class="btn-group pull-right">
+  <a class="btn" href="{% url 'federation_charts' federation.slug %}">{% trans "Charts" %}</a>
+</div>
+
+{% canedit federation %}
+<div class="btn-group pull-right">
+ <a class="btn" href="{% url 'federation_edit' federation.slug %}">{% trans "edit" %}</a>
+ {% if add_entity %}
+ &nbsp;<a class="btn" href="{% url 'entity_add' federation.slug %}">{% trans "add entity" %}</a>
+ {% endif %}
+ &nbsp;<a class="btn btn-primary" href="#" onclick="update_entities(); return false" data-toggle="modal" data-target="#saveModal">{% trans "update entities" %}</a>
+</div>
+{% endcanedit %}
+<h1>
+ {{ federation }}
+</h1>
+{% endblock %}
+
+
 {% block content %}
-{% if federation.logo %}
-<p><img alt="{{ federation }} logo" src="{{ MEDIA_URL }}{{ federation.logo }}"/></p>
-{% endif %}
-{% if federation.url %}
-<p><a href="{{ federation.url }}">{% trans "Federation external website" %}</a></p>
-{% endif %}
+<table width="100%"><tr><td width="50%">
+    {% if federation.logo %}
+        <p><img alt="{{ federation }} logo" src="{{ MEDIA_URL }}{{ federation.logo }}"/></p>
+    {% endif %}
 
+    {% if federation.country %}
+        <p>{% trans "Country" %}: {{ federation.country }}</p>
+    {% endif %}
 
-{% entity_list entities %}
+    {% if federation.registration_authority %}
+        <p>{% trans "Registration authority" %}: {{ federation.registration_authority }}</p>
+    {% endif %}
+
+    {% if federation.url %}
+        <p>{% trans "Federation external website" %}: <a href="{{ federation.url }}">{{ federation.url }}</a></p>
+    {% endif %}
+
+    {% if federation.type %}
+        <p>{% trans "Federation type" %}: {% get_property fed_types federation.type %}</p>
+    {% endif %}
+
+    {% if federation.fee_schedule_url %}
+        <p>{% trans "Fee schedule URL" %}: <a href="{{ federation.fee_schedule_url }}">{{ federation.fee_schedule_url }}</a></p>
+    {% endif %}
+
+    {% if federation.metadata_update %}
+        <p>{% trans "Metadata updated on" %}: {{ federation.metadata_update }}</a></p>
+    {% endif %}
+</td><td width="50%" align="right">
+    {% if statcharts %}
+        {% load chartit %}
+        {{ statcharts|load_charts:"pie_chart" }}
+
+        <div id='pie_chart'></div>
+    {% endif %}
+</td></tr></table>
+
+{% entity_list entities pagination curfed=federation %}
 
 {% endblock %}

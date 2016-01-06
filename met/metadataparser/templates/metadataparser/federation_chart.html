@@ -1,0 +1,34 @@
+{% extends "metadataparser/base_metadataparser.html" %}
+{% load i18n metadataparsertags %}
+
+{% block appendheader %}
+  {% if form.instance.id %}
+	<h2>{% trans "Statistic charts for " %} {{ form.instance }}</h2>
+  {% else %}
+	<h2>{% trans "Statistic charts" %}</h2>
+  {% endif %}
+
+  {% if statcharts %}
+	{% load chartit %}
+	{{ statcharts|load_charts:"s_chart,p_chart" }}
+  {% endif %}
+
+{% endblock %}
+
+{% block content %}
+  {% if statcharts %}
+	<table class="table table-bordered">
+		<tr>
+	  		<td>
+	  			<div id='s_chart'></div>
+			</td>
+	  	</tr>
+		<tr>
+	  		<td>
+	  			<div id='p_chart'></div>
+			</td>
+	  	</tr>
+	</table>
+  {% endif %}
+  {% bootstrap_form form cancel_link=form.instance.get_absolute_url delete_link=delete_link %}
+{% endblock %}

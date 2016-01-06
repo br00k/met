@@ -23,6 +23,9 @@ System packages (ubuntu-1204)
 * libpq-dev
 * xmlsec1
 * memcached
+* libffi-dev
+* django_chartit
+* dateutils
 
 
 Create database
@@ -85,6 +88,12 @@ Project deployment
       cp local_settings.example.py local_settings.py
       python manage.py syncdb
 
+* To initialize static files for admin page of Django execute:
+
+  .. code-block:: bash
+
+      python manage.py collectstatic
+
 
 Apache configuration
 ********************
@@ -112,12 +121,21 @@ http://httpd.apache.org/docs/2.2/mod/core.html#allowencodedslashes
 
     AllowEncodedSlashes NoDecode
 
+    WSGIDaemonProcess <server name> home=/home/met
+    WSGIProcessGroup <server name>
+    
     WSGIScriptAlias / /home/met/met/met-wsgi.py
 
     <Directory /home/met/met/met-wsgi.py>
     Order allow,deny
     Allow from all
     </Directory>
+
+    <Location /met/saml2/login >
+    authtype shibboleth
+    shibRequestSetting requireSession 1
+    require valid-user
+    </Location>
 
 
 Enable memcached
@@ -149,49 +167,56 @@ Initialize media directory with proper permissions:
     chmod g+srw ~/media
 
 
-Saml2 Authentication integration
-********************************
+Create directory for pyFF cache
+*******************************
 
-The ``local_settings`` example has a generic configuration of SAML2
-Authentication integration.
-
-You need to change ``SAML_CONFIG`` according to your organization information.
-
-For testing purposes, you should create your own self-signed certificates. For
-other purposes you should buy them. How to create the certificates:
-
-* Follow the first five steps of this guide:
-  http://www.akadia.com/services/ssh_test_certificate.html
-* Create certs directory met/saml2/certs
-* Copy server.key and server.crt to met/saml2/certs
+Create a cache directory for pyFF with proper permissions:
 
 .. code-block:: bash
 
-   openssl genrsa -des3 -out server.key 2048
-   openssl req -new -key server.key -out server.csr
-   cp server.key server.key.org
-   openssl rsa -in server.key.org -out server.key
-   openssl x509 -req -days 365 -in server.csr -signkey server.key -out server.crt
+    mkdir /home/met/met/.cache
+    chown www-data.www-data /home/met/met/.cache
 
+Automatic refresh of federations' metadata
+******************************************
 
-You need to put your IDP metadata in ``saml/remote_metadata.xml`` or, if you
-modified the ``SAML_CONFIG.metatadata.local`` setting, in the proper path.
-
-Set a saml2 user as superuser
------------------------------
-
-If the user doesn't exists, you can create it already as superuser without a
-password using this command in the correct environment:
-
+Metadata of configured federations can be refreshed automatically. To achieve this
+you just need to configure a cronjob on your server such as: 
 
 .. code-block:: bash
 
-  python manage.py createsuperuser --username super@example.com \
-     --email=supera@example.com --noinput
+   0 * * * * cd /home/met/met && /home/met/met-venv/bin/python /home/met/met/automatic_refresh/refresh.py --log /home/met/met/automatic_refresh/pylog.conf
 
-If this fails and some errors appear related to the  djangosaml2.log file, then
-you must change the permissions of the /tmp/djangosaml2.log file and make it
-writable by the user that executes your manage.py command.
+With the option --log the script will log as configured in the logging configuration file.
+
+This cron code must be inserted for the met user, so to edit the proper cron file,
+it is highly suggested you use the command:
+
+.. code-block:: bash
+
+   crontab -u met -e
+
+
+Logrotate configuration
+***********************
+
+Logrotate can be configured to avoid the continuous growth of the refresh metadata script logging:
+
+.. code-block:: javascript
+
+   /var/log/met_refresh.log {
+        rotate 7
+        daily
+        missingok
+        notifempty
+        delaycompress
+        compress
+        postrotate
+                touch /var/log/met_refresh.log >/dev/null 2>&1 || true
+                chown www-data.www-data /var/log/met_refresh.log >/dev/null 2>&1 || true
+                reload rsyslog >/dev/null 2>&1 || true
+        endscript
+  }
 
 
 Publishing Met Documentation

@@ -1,0 +1,242 @@
+#################################################################
+# MET v2 Metadate Explorer Tool
+#
+# This Software is Open Source. See License: https://github.com/TERENA/met/blob/master/LICENSE.md
+# Copyright (c) 2012, TERENA All rights reserved.
+#
+# This Software is based on MET v1 developed for TERENA by Yaco Sistemas, http://www.yaco.es/
+# MET v2 was developed for TERENA by Tamim Ziai, DAASI International GmbH, http://www.daasi.de
+# Current version of MET has been revised for performance improvements by Andrea Biancini,
+# Consortium GARR, http://www.garr.it
+#########################################################################################
+
+import os
+import saml2
+
+HOSTNAME = 'https://met-hostname.example.com'
+BASEURL = '/'
+BASEDIR = os.path.abspath(os.path.dirname(__file__))
+
+DEBUG = False
+PROFILE = DEBUG
+TEMPLATE_DEBUG = DEBUG
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
+        'NAME': 'met',                      # Or path to database file if using sqlite3.
+        'USER': 'met',                      # Not used with sqlite3.
+        'PASSWORD': 'met',                  # Not used with sqlite3.
+        'HOST': 'localhost',                      # Set to empty string for localhost. Not used with sqlite3.
+        'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
+    }
+}
+
+MYSQLPOOL_BACKEND = 'QueuePool'
+
+MYSQLPOOL_ARGUMENTS = {
+    'use_threadlocal': False,
+    'pool_size': 5,
+    'max_overflow': 10,
+}
+
+ADMINS = (
+    # ('Your Name', 'your_email@example.com'),
+)
+
+INTERNAL_IPS = ('192.168.122.1',)
+ALLOWED_HOSTS = ('met.mi.garr.it',)
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+    }
+}
+
+SAML_CREATE_UNKNOWN_USER = True
+
+SAML_DJANGO_USER_MAIN_ATTRIBUTE = 'username'
+
+SAML_ATTRIBUTE_MAPPING = {
+    'eduPersonPrincipalName': ('username',) ,
+    'mail': ('email', ),
+    'givenName': ('first_name', ),
+    'sn': ('last_name', ),
+}
+
+
+ORGANIZATION_NAME = 'Your organization'
+
+SAML2DIR = os.path.join(BASEDIR, 'saml2')
+
+LOGIN_URL = '%s/saml2/login' % BASEURL
+LOGOUT_URL = '%s/met/logout' % BASEURL
+
+SAML_DESCRIPTION = 'Metadata Explorer Tool'
+SAML_ENTITYID = 'https://met-hostname.example.com/saml2/metadata/'
+
+SAML_CONFIG = {
+  # full path to the xmlsec1 binary programm
+  'xmlsec_binary': '/usr/bin/xmlsec1',
+
+  # your entity id, usually your subdomain plus the url to the metadata view
+  'entityid': SAML_ENTITYID,
+
+  # directory with attribute mapping
+  'attribute_map_dir': os.path.join(SAML2DIR, 'attribute-maps'),
+
+  'name': SAML_DESCRIPTION,
+
+  # this block states what services we provide
+  'service': {
+    # we are just a lonely SP
+    'sp': {
+      'endpoints': {
+        # url and binding to the assetion consumer service view
+        # do not change the binding or service name
+        'assertion_consumer_service': [
+          ('%s%s/saml2/acs/' % (HOSTNAME, BASEURL),
+          saml2.BINDING_HTTP_POST),
+        ],
+        # url and binding to the single logout service view
+        # do not change the binding or service name
+        'single_logout_service': [
+          ('%s%s/saml2/ls/' % (HOSTNAME, BASEURL),
+          saml2.BINDING_HTTP_REDIRECT),
+        ],
+      },
+
+      #MDUI info to be used to customize UI of federation services
+      'ui_info': {
+        'display_name': {
+          'text': SAML_DESCRIPTION,
+          'lang': 'en',
+        },
+        'description': {
+          'text': 'Metadata Explorer Tool is a fast way to find federations, entities and his relations through entity/federation metadata file information.',
+          'lang': 'en',
+        },
+        'information_url': {
+          'text': '%s%s/static/doc' % (HOSTNAME, BASEURL),
+          'lang': 'en',
+        },
+        'privacy_statement_url': {
+          'text': '%s%s/static/privacy.html' % (HOSTNAME, BASEURL),
+          'lang': 'en',
+        },
+      },
+
+      # This is commented to be compatible with simplesamlphp
+      # attributes that this project need to identify a user
+      'required_attributes': ['eduPersonPrincipalName', 'mail'],
+
+      # attributes that may be useful to have but not required
+      'optional_attributes': ['givenName', 'sn'],
+
+      # Extensions for request initiator
+      'extensions': {
+        'reqinit': {
+           'RequestInitiator': {
+             'Binding': 'urn:oasis:names:tc:SAML:profiles:SSO:request-init',
+             'Location': "%s%s" % (HOSTNAME, LOGIN_URL),
+           },
+        },
+      },
+
+      # in this section the list of IdPs we talk to are defined
+      #'idp': {
+      #  # we do not need a WAYF service since there is
+      #  # only an IdP defined here. This IdP should be
+      #  # present in our metadata
+      #
+      #  # the keys of this dictionary are entity ids
+      #  'https://idp-hostname.example.com/idp/shibboleth': {
+      #    'single_sign_on_service': {
+      #      saml2.BINDING_HTTP_REDIRECT: 'https://idp-hostname.example.com/idp/profile/Shibboleth/SSO',
+      #    },
+      #    'single_logout_service': {
+      #      saml2.BINDING_HTTP_REDIRECT: 'https://idp-hostname.example.com/idp/profile/Shibboleth/Logout',
+      #    },
+      #  },
+      #},
+    },
+  },
+
+  # where the remote metadata is stored
+  'metadata': {
+      'local': [
+          os.path.join(SAML2DIR, 'remote_metadata.xml'),
+          os.path.join(SAML2DIR, 'edugain_metadata.xml'),
+      ],
+  },
+
+  # set to 1 to output debugging information
+  'debug': 1,
+
+  # certificate
+  'key_file': os.path.join(SAML2DIR, 'certs/server.key'),  # private part
+  'cert_file': os.path.join(SAML2DIR, 'certs/server.crt'),  # public part
+
+  # own metadata settings
+  'contact_person': [
+      {'given_name': 'Sysadmin',
+       'sur_name': '',
+       'company': 'Example CO',
+       'email_address': 'sysadmin@example.com',
+       'contact_type': 'technical'},
+      {'given_name': 'Admin',
+       'sur_name': 'CEO',
+       'company': 'Example CO',
+       'email_address': 'admin@example.com',
+       'contact_type': 'administrative'},
+      ],
+  # you can set multilanguage information here
+  'organization': {
+      'name': [('Example CO', 'es'), ('Example CO', 'en')],
+      'display_name': [('Example', 'es'), ('Example', 'en')],
+      'url': [('http://www.example.com', 'es'), ('http://www.example.com', 'en')],
+  },
+}
+
+DJANGO_FEDERATIONS = ['edugain']
+
+DJANGO_ADDITIONAL_IDPS = [
+  {
+    'entityID': 'https://idp-hostname.example.com/idp/shibboleth',
+    'title': 'IdP example',
+    'icon': 'openidp.png',
+    'descr': 'Example IdP',
+    'country': '_all_',
+    'weight': -5,
+    'keywords': ['Example', 'Test'],
+  },
+]
+
+MAIL_CONFIG = {
+  # Email server name
+  'email_server': 'mailserver.daasi.de',
+  # Email server port number
+  'email_server_port': None,
+  # Login password authenticate
+  'login_type': 'LOGIN PLAIN',
+  # Username to be used to login to SMTP
+  'username': None,
+  # Password to be used to login to SMTP
+  'password': None,
+  # Addressee email address
+  'to_email_address': ['tamim.ziai@daasi.de'],
+  # own email address
+  'from_email_address': 'met@refeds.org',
+  # Subject for metadata refresh error
+  'refresh_subject': 'Metadata failure for federation %s',
+  # Subject for comments
+  'comment_subject': 'Comment for entity \'%s\'',
+  # Subject for I'd like ...
+  'proposal_subject': 'Proposal for gathering the entity %s in a federation',
+  # Body for I'd like ...
+  'proposal_body': 'I\'d like the entity %s to be gathered in the following federation(s):%s\n\nComment:\n%s',
+}
+
+OWA_BASEURL = 'https://localhost/owa'
+OWA_SITEID = ''
+

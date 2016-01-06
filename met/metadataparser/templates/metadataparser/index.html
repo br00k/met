@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% load i18n metadataparsertags %}
 
+{% block appendheader %}
+
+{% endblock %}
 
 {% block extrajs %}
 <script type="text/javascript">
@@ -49,9 +52,9 @@
   </thead>
   <tbody>
     <tr>
-      <td>{% entities_count entities %}</td>
+      <td>{% get_fed_total totals 'All' %}</td>
       {% for etype in entity_types %}
-      <td class="entitytype">{% entities_count entities etype %}</td>
+      <td class="entitytype">{% get_fed_total totals etype %}</td>
       {% endfor %}
     </tr>
   </tbody>
@@ -60,19 +63,32 @@
 
 <div class="summary">
   <h2 id="mostfederatedentities">{% trans "Most federated entities" %}</h2>
+
+<!--   <button type="button" class="btn" data-dismiss="alert">{% trans "More" %}</button> -->
+<!--  
+	<button type="button" class="btn pull-left" formtarget="{ url 'decrement_current_toplength' %}">-</button>
+	<button type="button" class="btn pull-left" formtarget="{ url 'increment_current_toplength' %}">+</button>
+ -->
+	<div class="btn-group pull-left">
+	  <a class="btn" href="{% url 'show_less_entries' %}">-</a>
+	</div>
+	<div class="btn-group pull-left">
+	  <a class="btn" href="{% url 'show_more_entries' %}">+</a>
+	</div>
+ 
   {% entity_list most_federated_entities show_total=False append_query="export=most_federated_entities" %}
 </div>
 
 {% if interfederations %}
 <div class="summary">
 <h2 id="interfederationsummary">{% trans "Interfederations summary" %}</h2>
-{% federations_summary "interfederations" interfederations %}
+{% federations_summary "interfederations" counts interfederations %}
 </div>
 {% endif %}
 
 <div class="summary">
 <h2 id="federationssummary">{% trans "Federations summary" %}</h2>
-{% federations_summary "federations" federations %}
+{% federations_summary "federations" counts federations %}
 </div>
 
 <p class="text-muted">

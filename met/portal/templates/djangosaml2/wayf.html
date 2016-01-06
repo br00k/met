@@ -9,7 +9,7 @@
 <p>{% blocktrans %}Please select your <strong>Identity Provider</strong> from the following list:{% endblocktrans %}</p>
 <ul class="unstyled">
   {% for url, name in available_idps %}
-  <li><a href="{% url djangosaml2.views.login %}?idp={{ url }}{% if came_from %}&next={{ came_from }}{% endif %}">{{ name }}</a></li>
+  <li><a href="{% url 'djangosaml2.views.login' %}?idp={{ url }}{% if came_from %}&next={{ came_from }}{% endif %}">{{ name }}</a></li>
   {% endfor %}
 </ul>
 {% endblock %}

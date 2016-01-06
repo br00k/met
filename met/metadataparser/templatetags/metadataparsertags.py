@@ -1,5 +1,19 @@
+#################################################################
+# MET v2 Metadate Explorer Tool
+#
+# This Software is Open Source. See License: https://github.com/TERENA/met/blob/master/LICENSE.md
+# Copyright (c) 2012, TERENA All rights reserved.
+#
+# This Software is based on MET v1 developed for TERENA by Yaco Sistemas, http://www.yaco.es/
+# MET v2 was developed for TERENA by Tamim Ziai, DAASI International GmbH, http://www.daasi.de
+# Current version of MET has been revised for performance improvements by Andrea Biancini,
+# Consortium GARR, http://www.garr.it
+#########################################################################################
+
 from django import template
 from django.template.base import Node, TemplateSyntaxError
+from django.template.defaultfilters import stringfilter
+from django.utils.safestring import mark_safe, SafeData
 from met.metadataparser.models import Federation
 from met.metadataparser.xmlparser import DESCRIPTOR_TYPES, DESCRIPTOR_TYPES_DISPLAY
 from met.metadataparser.query_export import export_modes
@@ -7,6 +21,28 @@ from met.metadataparser.summary_export import export_summary_modes
 from urllib import urlencode
 
 register = template.Library()
+
+
+class AddGetParameter(Node):
+    def __init__(self, values):
+        self.values = values
+        
+    def render(self, context):
+        req = template.resolve_variable('request', context)
+        params = req.GET.copy()
+        for key, value in self.values.items():
+            params[key] = value.resolve(context)
+        return '?%s' %  params.urlencode()
+
+
+@register.tag()
+def add_get(parser, token):
+    pairs = token.split_contents()[1:]
+    values = {}
+    for pair in pairs:
+        s = pair.split('=', 1)
+        values[s[0]] = parser.compile_filter(s[1])
+    return AddGetParameter(values)
 
 
 @register.inclusion_tag('metadataparser/bootstrap_form.html')
@@ -22,23 +58,35 @@ def bootstrap_searchform(form):
 
 
 @register.inclusion_tag('metadataparser/federations_summary_tag.html', takes_context=True)
-def federations_summary(context, queryname, federations=None):
+def federations_summary(context, queryname, counts, federations=None):
     if not federations:
         federations = Federation.objects.all()
 
+    user = context.get('user', None)
+    add_federation = user and user.has_perm('metadataparser.add_federation')
+
     return {'federations': federations,
-            'user': context.get('user', None),
+            'add_federation': add_federation,
             'queryname': queryname,
+            'counts': counts,
             'entity_types': DESCRIPTOR_TYPES}
 
 
 @register.inclusion_tag('metadataparser/tag_entity_list.html', takes_context=True)
-def entity_list(context, entities, show_total=True, append_query=None):
-    return {'request': context.get('request', None),
+def entity_list(context, entities, pagination=None, curfed=None, show_total=True, append_query=None):
+    request = context.get('request', None)
+    lang = 'en'
+    if request:
+        lang = request.GET.get('lang', 'en')
+
+    return {'request': request,
             'entities': entities,
+            'curfed' : curfed,
             'show_filters': context.get('show_filters'),
             'append_query': append_query,
             'show_total': show_total,
+            'lang': lang,
+            'pagination': pagination,
             'entity_types': DESCRIPTOR_TYPES}
 
 
@@ -48,7 +96,7 @@ def entity_filters(context, entities):
     request = context.get('request')
     entity_type = request.GET.get('entity_type', '')
     rquery = request.GET.copy()
-    for filter in ('entity_type', 'page'):
+    for filter in 'entity_type', 'page':
         if filter in rquery:
             rquery.pop(filter)
     if not entity_type:
@@ -117,15 +165,52 @@ def entities_count(entity_qs, entity_type=None):
         return entity_qs.count()
 
 
+@register.simple_tag()
+def get_fed_total(totals, entity_type='All'):
+    tot_count = 0
+    for curtotal in totals:
+        if entity_type == 'All' or curtotal['types__xmlname'] == entity_type:
+            tot_count += curtotal['types__xmlname__count']
+    return tot_count
+
+
+@register.simple_tag()
+def get_fed_count(counts, federation='All', entity_type='All'):
+    count = counts[entity_type]
+
+    fed_count = 0
+    for curcount in count:
+        if federation == 'All' or curcount['federations__id'] == federation:
+            fed_count += curcount['federations__id__count']
+    return fed_count
+
+
 @register.simple_tag(takes_context=True)
-def l10n_property(context, prop):
-    if isinstance(prop, dict):
-        lang = context.get('LANGUAGE_CODE', None)
+def l10n_property(context, prop, lang):
+    if isinstance(prop, dict) and len(prop) > 0:
+        if not lang:
+            lang = context.get('LANGUAGE_CODE', None)
         if lang and lang in prop:
             return prop.get(lang)
         else:
             return prop[prop.keys()[0]]
     return prop
+
+
+
+@register.simple_tag(takes_context=True)
+def organization_property(context, organizations, prop, lang):
+    if not isinstance(organizations, list):
+        return prop
+
+    lang = lang or context.get('LANGUAGE_CODE', None)
+    for organization in organizations:
+        if prop in organization:
+            val = organization[prop]
+            if organization['lang'] == lang:
+                val = organization[prop]
+
+    return val
 
 
 @register.simple_tag()
@@ -156,7 +241,9 @@ def active_url(context, pattern):
 
 @register.filter(name='display_etype')
 def display_etype(value, separator=', '):
-    if hasattr(value, 'all'):
+    if isinstance(value, list):
+        return separator.join(value)
+    elif hasattr(value, 'all'):
         return separator.join([unicode(item) for item in value.all()])
     else:
         if value in DESCRIPTOR_TYPES_DISPLAY:
@@ -174,19 +261,20 @@ def wrap(value, length):
 
 
 class CanEdit(Node):
-    child_nodelists = ('nodelist')
+    child_nodelists = 'nodelist'
 
     def __init__(self, obj, nodelist):
         self.obj = obj
         self.nodelist = nodelist
 
-    def __repr__(self):
+    @classmethod
+    def __repr__(cls):
         return "<CanEdit>"
 
     def render(self, context):
         obj = self.obj.resolve(context, True)
         user = context.get('user')
-        if obj.can_edit(user):
+        if obj.can_edit(user, False):
             return self.nodelist.render(context)
         else:
             return ''
@@ -215,3 +303,10 @@ def canedit(parser, token):
         {% endcanedit %}
     """
     return do_canedit(parser, token)
+
+@register.filter
+@stringfilter
+def split(value, splitter='|'):
+    if not isinstance(value, SafeData):
+        value = mark_safe(value)
+    return value.split(splitter)

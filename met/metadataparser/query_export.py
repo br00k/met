@@ -1,128 +1,103 @@
+#################################################################
+# MET v2 Metadate Explorer Tool
+#
+# This Software is Open Source. See License: https://github.com/TERENA/met/blob/master/LICENSE.md
+# Copyright (c) 2012, TERENA All rights reserved.
+#
+# This Software is based on MET v1 developed for TERENA by Yaco Sistemas, http://www.yaco.es/
+# MET v2 was developed for TERENA by Tamim Ziai, DAASI International GmbH, http://www.daasi.de
+# Current version of MET has been revised for performance improvements by Andrea Biancini,
+# Consortium GARR, http://www.garr.it
+#########################################################################################
+
 import csv
 from xml.dom.minidom import Document
 import hashlib
 
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.template.defaultfilters import slugify
-from django.utils import simplejson as json
+import simplejson as json
 
 
 ## Taken from http://djangosnippets.org/snippets/790/
-def export_csv(qs, filename, fields=None):
-    model = qs.model
-    response = HttpResponse(mimetype='text/csv')
+def export_csv(model, filename, fields):
+    response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = ('attachment; filename=%s.csv'
                                        % slugify(filename))
     writer = csv.writer(response)
     # Write headers to CSV file
-    if fields:
-        headers = fields
-    else:
-        headers = []
-        for field in model._meta.fields:
-            headers.append(field.name)
-        fields = headers
-    _headers = []
-    for header in headers:
-        if header:
-            _headers.append(header)
-        else:
-            _headers.append(unicode(model._meta.verbose_name))
 
-    headers = _headers
-
-    writer.writerow(headers)
+    writer.writerow(fields)
     # Write data to CSV file
-    for obj in qs:
+    for obj in model:
         row = []
         for field in fields:
-            if field == '':
-                val = unicode(obj)
-            else:
-                val = getattr(obj, field)
-                if callable(val):
-                    val = val()
-                elif getattr(val, 'all', None):
-                    val = ', '.join([unicode(item) for item in val.all()])
-                # work around csv unicode limitation
-                elif type(val) == unicode:
-                    val = val.encode("utf-8")
-            row.append(val)
+            row.append("%s" % obj[field])
         writer.writerow(row)
     # Return CSV file to browser as download
     return response
 
 
-def export_json(qs, filename, fields=None):
-    model = qs.model
-
-    if not fields:
-        headers = []
-        for field in model._meta.fields:
-            headers.append(field.name)
-        fields = headers
+def export_json(model, filename, fields):
     objs = []
-    for obj in qs:
+    for obj in model:
         item = {}
         for field in fields:
-            if field == '':
-                field = unicode(obj._meta.verbose_name)
-                val = unicode(obj)
+            if type(obj[field]) == set:
+                item[field] = list(obj[field])
             else:
-                val = getattr(obj, field)
-                if callable(val):
-                    val = val()
-                elif getattr(val, 'all', None):
-                    val = [unicode(i) for i in val.all()]
-                # work around csv unicode limitation
-                elif type(val) == unicode:
-                    val = val.encode("utf-8")
-            item[field] = val
+                item[field] = obj[field]
+
         objs.append(item)
     # Return JS file to browser as download
     serialized = json.dumps(objs)
-    response = HttpResponse(serialized, mimetype='application/json')
+    response = HttpResponse(serialized, content_type='application/json')
     response['Content-Disposition'] = ('attachment; filename=%s.json'
                                        % slugify(filename))
     return response
 
 
-def export_xml(qs, filename, fields=None):
-    model = qs.model
+def _parse_xml_element(xml, father, structure):
+    if type(structure) == dict:
+        for k in structure:
+            tag = xml.createElement(k)
+            father.appendChild(tag)
+            _parse_xml_element(xml, tag, structure[k])
+    elif type(structure) == tuple:
+        tag_name = father.tagName
+        for l in list(structure):
+            tag = xml.createElement(tag_name)
+            _parse_xml_element(xml, tag, l)
+            father.appendChild(tag)
+    elif type(structure) == list:
+        tag_name = father.tagName
+        for l in structure:
+            tag = xml.createElement(tag_name)
+            _parse_xml_element(xml, tag, l)
+            father.appendChild(tag)
+    elif type(structure) == set:
+        tag_name = father.tagName
+        for l in list(structure):
+            tag = xml.createElement(tag_name)
+            _parse_xml_element(xml, tag, l)
+            father.appendChild(tag)
+    else:
+        if type(structure) == unicode:
+            data = structure.encode("ascii", errors="xmlcharrefreplace")
+        else:
+            data = str(structure)
+        tag = xml.createTextNode(data)
+        father.appendChild(tag)
+
+
+def export_xml(model, filename, fields):
     xml = Document()
     root = xml.createElement(filename)
     xml.appendChild(root)
-    if not fields:
-        headers = []
-        for field in model._meta.fields:
-            headers.append(field.name)
-        fields = headers
-    for obj in qs:
-        item = xml.createElement(model._meta.object_name)
-        item.setAttribute("id", unicode(obj))
-        for field in fields:
-            if field != '':
-                val = getattr(obj, field)
-                if getattr(val, 'all', None):
-                    for v in val.all():
-                        element = xml.createElement(field)
-                        xmlval = xml.createTextNode(unicode(v))
-                        element.appendChild(xmlval)
-                        item.appendChild(element)
-                else:
-                    if callable(val):
-                        val = val()
-                    # work around csv unicode limitation
-                    elif type(val) == unicode:
-                        val = val.encode("utf-8")
-
-                    element = xml.createElement(field)
-                    xmlval = xml.createTextNode(val)
-                    element.appendChild(xmlval)
-                    item.appendChild(element)
-        root.appendChild(item)
+    for obj in model:
+        _parse_xml_element(xml, root, obj)
     # Return xml file to browser as download
-    response = HttpResponse(xml.toxml(), mimetype='application/xml')
+    response = HttpResponse(xml.toxml(), content_type='application/xml')
     response['Content-Disposition'] = ('attachment; filename=%s.xml'
                                        % slugify(filename))
     return response

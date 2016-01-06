@@ -71,3 +71,25 @@ div.summary p {
 div.summary .btn-toolbar {
     margin-top: 0px;
 }
+
+.first-col {
+    width: 250px;
+}
+
+#pipelist {
+    display: inline;
+    list-style: none;
+    margin-left: 0px;
+}
+
+#pipelist li {
+    display: inline;
+}
+
+#pipelist li:after {
+    content: " | ";
+}
+
+#pipelist li:last-child:after {
+    content: "";
+}

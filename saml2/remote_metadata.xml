@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<md:EntitiesDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:mdrpi="urn:oasis:names:tc:SAML:metadata:rpi" xmlns:shibmd="urn:mace:shibboleth:metadata:1.0" xmlns:mdui="urn:oasis:names:tc:SAML:metadata:ui" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" Name="urn:mace:garr.mi.it:idem-dev" ID="IDEM-20150221143551">
+  <!--"https://idp-test-1.mi.garr.it/idp/shibboleth" 
+-->
+  <md:EntityDescriptor xmlns:mdrpi="urn:oasis:names:tc:SAML:metadata:rpi" xmlns:shibmd="urn:mace:shibboleth:metadata:1.0" xmlns:mdui="urn:oasis:names:tc:SAML:metadata:ui" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" entityID="https://idp-test-1.mi.garr.it/idp/shibboleth">
+    <md:Extensions>
+      <mdrpi:RegistrationInfo xmlns:mdrpi="urn:oasis:names:tc:SAML:metadata:rpi" registrationAuthority="http://www.idem.garr.it/" registrationInstant="2015-02-16T14:25:08Z"/>
+    </md:Extensions>
+    <md:IDPSSODescriptor xmlns:shibmd="urn:mace:shibboleth:metadata:1.0" xmlns:mdui="urn:oasis:names:tc:SAML:metadata:ui" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol urn:oasis:names:tc:SAML:1.1:protocol urn:mace:shibboleth:1.0">
+      <md:Extensions xmlns:shibmd="urn:mace:shibboleth:metadata:1.0" xmlns:mdui="urn:oasis:names:tc:SAML:metadata:ui">
+        <shibmd:Scope xmlns:shibmd="urn:mace:shibboleth:metadata:1.0" regexp="false">mi.garr.it</shibmd:Scope>
+        <mdui:UIInfo xmlns:mdui="urn:oasis:names:tc:SAML:metadata:ui">
+          <mdui:Description xml:lang="it">GARR Milano Laboratorio</mdui:Description>
+          <mdui:DisplayName xml:lang="it">IdP Test 1</mdui:DisplayName>
+          <mdui:DisplayName xml:lang="en">IdP Test 1</mdui:DisplayName>
+          <mdui:PrivacyStatementURL xml:lang="it">http://www.garr.it/</mdui:PrivacyStatementURL>
+          <mdui:InformationURL xml:lang="it">https://idp-test-1.mi.garr.it/idp/info.html</mdui:InformationURL>
+        </mdui:UIInfo>
+      </md:Extensions>
+      <md:KeyDescriptor xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+        <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+          <ds:X509Data>
+            <ds:X509Certificate>
+MIIDPzCCAiegAwIBAgIUXiB8nkvVqZaTAoFhky7j//JVujMwDQYJKoZIhvcNAQEF
+BQAwIDEeMBwGA1UEAxMVaWRwLXRlc3QxLm1pYi5pbmZuLml0MB4XDTE1MDIxNjEz
+NDIxOVoXDTM1MDIxNjEzNDIxOVowIDEeMBwGA1UEAxMVaWRwLXRlc3QxLm1pYi5p
+bmZuLml0MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmKkgbdsYhZt/
+DE94gmPdXGKCwp7gSDinKizM9dEGDxxI815jwqdKzy2k/L2ZYzO+Lx6Sa7O1u6PX
+hKMnHOk0x6U+Z91qFgzGUroG7aIc1+HBeNSw0FtnotZIN+7Ny620eGukK0V33WZH
+pwYZt8rDHyOuzNyk3ri8FkUKyAGk8Msx33rLmnfsg1U1rBz4TMS8J+dYD5N96WZe
+IF2qQ4wtYOOebolAaAVWsMjP8+pDg/AaqDQxGxeeZBh+BodylGo5tKj9oHlFzjlB
+ncGtpirqDRG61E3gbESkP3phCn3c58b0MXDYjrjo5RCfrxIsZlbmMG4ZKQLDixEO
+/lEU2E2XdwIDAQABo3EwbzBOBgNVHREERzBFghVpZHAtdGVzdDEubWliLmluZm4u
+aXSGLGh0dHBzOi8vaWRwLXRlc3QxLm1pYi5pbmZuLml0L2lkcC9zaGliYm9sZXRo
+MB0GA1UdDgQWBBTzbZZoH1qt1gNT3mWj28G13Aia/TANBgkqhkiG9w0BAQUFAAOC
+AQEAYXv2jJKTazPPkS/NmWJBzXLtZmdJdeCgAq9nEWkF/wb34J1gfpl0HDr4e2+X
+pkusJPFLNnXy550jDrRkDTK0z1WFMrnE7QrIOi53xt/Hdmsw3tOm0DoXSCrPkuIm
+A0FFb7OzyBObF/7t15hUZMq783kFShSK9k7tupZWAq4jX4p+mDzt41aSUfrl9ifP
+ThoOPvSXCaFTubifQELSG+Hmjz4r5cOIcQ0t42AJGoB0tNdZ8bZgrjz/3YaeNrUl
+VgwO3BVIItHZwk7WzuXZyHc/JkEedQMAaQ7rT+pi8gYfUcvZjfXj5GPKj56IWG1b
+EYezRETOdzKgWtp6fjzRl8iWjA==
+</ds:X509Certificate>
+          </ds:X509Data>
+        </ds:KeyInfo>
+      </md:KeyDescriptor>
+      <md:ArtifactResolutionService Binding="urn:oasis:names:tc:SAML:1.0:bindings:SOAP-binding" Location="https://idp-test-1.mi.garr.it:8443/idp/profile/SAML1/SOAP/ArtifactResolution" index="1"/>
+      <md:ArtifactResolutionService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="https://idp-test-1.mi.garr.it:8443/idp/profile/SAML2/SOAP/ArtifactResolution" index="2"/>
+      <md:NameIDFormat>urn:mace:shibboleth:1.0:nameIdentifier</md:NameIDFormat>
+      <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>
+      <md:SingleSignOnService Binding="urn:mace:shibboleth:1.0:profiles:AuthnRequest" Location="https://idp-test-1.mi.garr.it/idp/profile/Shibboleth/SSO"/>
+      <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://idp-test-1.mi.garr.it/idp/profile/SAML2/POST/SSO"/>
+      <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST-SimpleSign" Location="https://idp-test-1.mi.garr.it/idp/profile/SAML2/POST-SimpleSign/SSO"/>
+      <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://idp-test-1.mi.garr.it/idp/profile/SAML2/Redirect/SSO"/>
+    </md:IDPSSODescriptor>
+    <md:AttributeAuthorityDescriptor xmlns:shibmd="urn:mace:shibboleth:metadata:1.0" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol urn:oasis:names:tc:SAML:1.1:protocol">
+      <md:Extensions xmlns:shibmd="urn:mace:shibboleth:metadata:1.0">
+        <shibmd:Scope xmlns:shibmd="urn:mace:shibboleth:metadata:1.0" regexp="false">mi.garr.it</shibmd:Scope>
+      </md:Extensions>
+      <md:KeyDescriptor xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+        <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+          <ds:X509Data>
+            <ds:X509Certificate>
+MIIDPzCCAiegAwIBAgIUXiB8nkvVqZaTAoFhky7j//JVujMwDQYJKoZIhvcNAQEF
+BQAwIDEeMBwGA1UEAxMVaWRwLXRlc3QxLm1pYi5pbmZuLml0MB4XDTE1MDIxNjEz
+NDIxOVoXDTM1MDIxNjEzNDIxOVowIDEeMBwGA1UEAxMVaWRwLXRlc3QxLm1pYi5p
+bmZuLml0MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmKkgbdsYhZt/
+DE94gmPdXGKCwp7gSDinKizM9dEGDxxI815jwqdKzy2k/L2ZYzO+Lx6Sa7O1u6PX
+hKMnHOk0x6U+Z91qFgzGUroG7aIc1+HBeNSw0FtnotZIN+7Ny620eGukK0V33WZH
+pwYZt8rDHyOuzNyk3ri8FkUKyAGk8Msx33rLmnfsg1U1rBz4TMS8J+dYD5N96WZe
+IF2qQ4wtYOOebolAaAVWsMjP8+pDg/AaqDQxGxeeZBh+BodylGo5tKj9oHlFzjlB
+ncGtpirqDRG61E3gbESkP3phCn3c58b0MXDYjrjo5RCfrxIsZlbmMG4ZKQLDixEO
+/lEU2E2XdwIDAQABo3EwbzBOBgNVHREERzBFghVpZHAtdGVzdDEubWliLmluZm4u
+aXSGLGh0dHBzOi8vaWRwLXRlc3QxLm1pYi5pbmZuLml0L2lkcC9zaGliYm9sZXRo
+MB0GA1UdDgQWBBTzbZZoH1qt1gNT3mWj28G13Aia/TANBgkqhkiG9w0BAQUFAAOC
+AQEAYXv2jJKTazPPkS/NmWJBzXLtZmdJdeCgAq9nEWkF/wb34J1gfpl0HDr4e2+X
+pkusJPFLNnXy550jDrRkDTK0z1WFMrnE7QrIOi53xt/Hdmsw3tOm0DoXSCrPkuIm
+A0FFb7OzyBObF/7t15hUZMq783kFShSK9k7tupZWAq4jX4p+mDzt41aSUfrl9ifP
+ThoOPvSXCaFTubifQELSG+Hmjz4r5cOIcQ0t42AJGoB0tNdZ8bZgrjz/3YaeNrUl
+VgwO3BVIItHZwk7WzuXZyHc/JkEedQMAaQ7rT+pi8gYfUcvZjfXj5GPKj56IWG1b
+EYezRETOdzKgWtp6fjzRl8iWjA==
+</ds:X509Certificate>
+          </ds:X509Data>
+        </ds:KeyInfo>
+      </md:KeyDescriptor>
+      <md:AttributeService Binding="urn:oasis:names:tc:SAML:1.0:bindings:SOAP-binding" Location="https://idp-test-1.mi.garr.it:8443/idp/profile/SAML1/SOAP/AttributeQuery"/>
+      <md:AttributeService Binding="urn:oasis:names:tc:SAML:2.0:bindings:SOAP" Location="https://idp-test-1.mi.garr.it:8443/idp/profile/SAML2/SOAP/AttributeQuery"/>
+      <md:NameIDFormat>urn:mace:shibboleth:1.0:nameIdentifier</md:NameIDFormat>
+      <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>
+    </md:AttributeAuthorityDescriptor>
+    <md:Organization>
+      <md:OrganizationName xml:lang="it">Consortium GARR Milano</md:OrganizationName>
+      <md:OrganizationDisplayName xml:lang="it">GARR Milano</md:OrganizationDisplayName>
+      <md:OrganizationURL xml:lang="it">http://www.garr.it/</md:OrganizationURL>
+    </md:Organization>
+    <md:ContactPerson contactType="technical">
+      <md:GivenName>Andrea</md:GivenName>
+      <md:SurName>Biancini</md:SurName>
+      <md:EmailAddress>andrea.biancini@garr.it</md:EmailAddress>
+    </md:ContactPerson>
+  </md:EntityDescriptor>
+</md:EntitiesDescriptor>
